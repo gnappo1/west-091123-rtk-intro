@@ -1,20 +1,24 @@
 import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import {Link} from 'react-router-dom'
 import styled from 'styled-components'
 import { useHistory } from 'react-router-dom'
 import { GiHamburgerMenu } from 'react-icons/gi'
+import { logout, selectUser } from '../features/user/userSlice'
 
-function Navigation({updateUser, user, handleNewError}) {
+function Navigation() {
  const [menu, setMenu] = useState(false)
-//  const history = useHistory()
-
+ const dispatch = useDispatch()
+  // const {user} = selectUser()
+  const user = useSelector(state => state.user.data)
  const handleLogout = () => {
     //! No need to send a request to the API
     //! There is nothing our API can currently do to invalidate this token
     //! the frontend simply has to remove the tokenS (as in both of them) from localStorage 
     localStorage.removeItem("jwt_token")
     localStorage.removeItem("refresh_token")
-    updateUser(null)
+    // updateUser(null)
+    dispatch(logout())
  }
 
     return (

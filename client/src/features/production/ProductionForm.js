@@ -1,68 +1,70 @@
-import React, {useState} from 'react'
+import React from 'react'
 import styled from 'styled-components'
 import { useHistory } from 'react-router-dom'
 // 6.✅ Verify formik and yet have been added to our package.json dependencies 
 import { Formik } from 'formik';
 import * as yup from 'yup';
+import { getRefreshToken, getToken, setToken } from '../../utility/main';
+import { useDispatch } from 'react-redux';
+import { addError, addProduction } from './productionSlice';
 
 
-
-function ProductionForm({addProduction, handleNewError}) {
-
+function ProductionForm() {
+  const dispatch = useDispatch()
   const history = useHistory()
   // 7.✅ Use yup to create client side validations
- const productionSchema = yup.object().shape({
-  title: yup.string()
-    .min(2, "Titles must be at least 2 chars long")
-    .max(50, "Titles must be 50 chars long max")
-    .required("Title is required"),
-  genre: yup.string()
-    .oneOf(["Drama", "Musical", "Opera"])
-    .required("Genre has to be one of Drama, Musical, Opera"),
-  budget: yup.number()
-    .positive("Budget has to be a positive integer")
-    .max(10000000, "Budget must be 50 chars long max")
-    .required("Budget has to be a positive float under 10Millions"),
-  image: yup.string()
-    .test("is-url", "Images must have a valid url ending with jpg, jpeg, png", (value) => {
-        const urlRegex = /(http(s?):)([/|.|\w|\s|-])*\.(?:jpg|jpeg|png)/g;
-        return urlRegex.test(value)
-    })
-    .required("Image is required"),
-  director: yup.string()
-    .required("Director is required"),
-  description: yup.string()
-    .min(30, "Description should be at least 10 chars")
-    .max(500, "Description should be 10000 chars max")
-    .required("Description is required")
- })
+  const productionSchema = yup.object().shape({
+    title: yup.string()
+      .min(2, "Titles must be at least 2 chars long")
+      .max(50, "Titles must be 50 chars long max")
+      .required("Title is required"),
+    genre: yup.string()
+      .oneOf(["Drama", "Musical", "Opera"])
+      .required("Genre has to be one of Drama, Musical, Opera"),
+    budget: yup.number()
+      .positive("Budget has to be a positive integer")
+      .max(10000000, "Budget must be 50 chars long max")
+      .required("Budget has to be a positive float under 10Millions"),
+    image: yup.string()
+      .test("is-url", "Images must have a valid url ending with jpg, jpeg, png", (value) => {
+          const urlRegex = /(http(s?):)([/|.|\w|\s|-])*\.(?:jpg|jpeg|png)/g;
+          return urlRegex.test(value)
+      })
+      .required("Image is required"),
+    director: yup.string()
+      .required("Director is required"),
+    description: yup.string()
+      .min(30, "Description should be at least 10 chars")
+      .max(500, "Description should be 10000 chars max")
+      .required("Description is required")
+  })
 
   const postFetchProductions = (values) => {
     return fetch("/productions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        'Authorization': `Bearer ${localStorage.getItem("jwt_token")}`
+        'Authorization': `Bearer ${getToken()}`
       },
       body: JSON.stringify({...values, ongoing: true})
     })
     .then(resp => {
       if (resp.ok) { //! 201 successfully created
         resp.json().then((newProduction) => {
-          addProduction(newProduction)
+          dispatch(addProduction(newProduction))
           history.push("/")
         })
       } else { //! validation errors
-        resp.json().then(errorObj => handleNewError(errorObj.message))
+        resp.json().then(errorObj => dispatch(addError(errorObj.message)))
       }
     })
-    .catch(err => handleNewError(err))
+      .catch(err => dispatch(addError(err)))
   }
 
   const checkToken = () => fetch("/check", {
     headers: {
       //! NOTICE HERE I send the refresh token since I know the access token is expired
-      "Authorization": `Bearer ${localStorage.getItem("jwt_token")}`
+      "Authorization": `Bearer ${getToken()}`
     }
   })
 
@@ -71,7 +73,7 @@ function ProductionForm({addProduction, handleNewError}) {
       method: "POST",
       headers: {
         //! NOTICE HERE I send the refresh token since I know the access token is expired
-        "Authorization": `Bearer ${localStorage.getItem("refresh_token")}`
+        "Authorization": `Bearer ${getRefreshToken()}`
       }
     })
   }
@@ -93,15 +95,16 @@ function ProductionForm({addProduction, handleNewError}) {
                   if (res.ok) { //! refresh token was still valid
                     res.json().then(respObj => {
                       //! update the expired token in localStorage with the newly created token coming from the API  
-                      localStorage.setItem("jwt_token", respObj.jwt_token)
+                      setToken(respObj.jwt_token)
                     })
                     .then(() => postFetchProductions(values)) //! try again to fire the POST now that a new token has been issued
                   } else {
-                    res.json().then(errorObj => handleNewError(errorObj.msg))
+                    res.json().then(errorObj => dispatch(addError(errorObj.msg)))
                   }
                 })
               }
             })
+            .catch(err => dispatch(addError(err)))
           }}
         >
           {({

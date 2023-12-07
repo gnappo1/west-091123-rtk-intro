@@ -1,14 +1,18 @@
 import styled from 'styled-components'
 import { useHistory, useLocation } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { setProduction, addError } from './productionSlice'
 import { useFormik } from "formik"
 import * as yup from "yup"
+import { getToken, setToken } from '../../utility/main'
 
 
 
-function ProductionFormEdit({updateProduction, handleNewError}) {
+function ProductionFormEdit() {
   //Student Challenge: GET One 
   const history = useHistory()
-  const location = useLocation()
+  const dispatch = useDispatch()
+  const production = useSelector(state => state.production.spotlight)
   // 7.✅ Use yup to create client side validations
   const productionSchema = yup.object().shape({
     title: yup.string()
@@ -44,7 +48,7 @@ function ProductionFormEdit({updateProduction, handleNewError}) {
   const checkToken = () => fetch("/check", {
     headers: {
       //! NOTICE HERE I send the refresh token since I know the access token is expired
-      "Authorization": `Bearer ${localStorage.getItem("jwt_token")}`
+      "Authorization": `Bearer ${getToken()}`
     }
   })
 
@@ -53,7 +57,7 @@ function ProductionFormEdit({updateProduction, handleNewError}) {
       method: "POST",
       headers: {
         //! NOTICE HERE I send the refresh token since I know the access token is expired
-        "Authorization": `Bearer ${localStorage.getItem("refresh_token")}`
+        "Authorization": `Bearer ${getToken()}`
       }
     })
   }
@@ -63,33 +67,33 @@ function ProductionFormEdit({updateProduction, handleNewError}) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem("jwt_token")}`
+          'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(values)
       })
       .then(res => {
         if (res.ok) {
-          res.json().then(data => {
-            updateProduction(data)
+          res.json().then(production => {
+            dispatch(setProduction(production))
             history.push(`/productions/${id}`)
           })
         } else {
-          res.json().then(errorObj => handleNewError(errorObj.message))
+          res.json().then(errorObj => dispatch(addError(errorObj.message)))
         }
       })
-      .catch(error => handleNewError(error))
+      .catch(error => dispatch(addError(error)))
   }
-  const {id, title, genre, budget, image, director, description, ongoing} = location.state.production
+  const {id, title, genre, budget, image, director, description, ongoing} = production
   // 8.✅ useFormik hook
   const formik = useFormik({
     initialValues: {
-      title: title,
-      genre: genre,
-      budget: budget,
-      image: image,
-      director: director,
-      description: description,
-      ongoing: ongoing
+      title,
+      genre,
+      budget,
+      image,
+      director,
+      description,
+      ongoing
     },
     validationSchema: productionSchema,
     onSubmit: (values) => {
@@ -103,20 +107,20 @@ function ProductionFormEdit({updateProduction, handleNewError}) {
             if (res.ok) { //! refresh token was still valid
               res.json().then(respObj => {
                 //! update the expired token in localStorage with the newly created token coming from the API  
-                localStorage.setItem("jwt_token", respObj.jwt_token)
+                setToken(respObj.jwt_token)
               })
               .then(() => patchFetchProductions(values)) //! try again to fire the PATCH now that a new token has been issued
             } else {
-              res.json().then(errorObj => handleNewError(errorObj.msg))
+              res.json().then(errorObj => dispatch(addError(errorObj.msg)))
             }
           })
         }
       })
-      .catch(err => handleNewError(err))
+      .catch(err => dispatch(addError(err)))
     }
   })
 
-  if(!location.state.production) return <h2>Loading</h2>
+  if(!production) return <h2>Loading</h2>
 
   return (
       <div className='App'>

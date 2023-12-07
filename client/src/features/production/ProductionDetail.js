@@ -1,31 +1,36 @@
 import  {useParams, useHistory } from 'react-router-dom'
 import {useEffect, useState} from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {deleteProduction, setProduction, addError, setEditMode} from './productionSlice'
+import {getToken, getRefreshToken, setToken} from '../../utility/main'
 import styled from 'styled-components'
-import NotFound from './NotFound'
+import NotFound from '../../components/NotFound'
 
-function ProductionDetail({handleEdit, deleteProduction, handleNewError}) {
-  const [production, setProduction] = useState({crew_members:[]})
+function ProductionDetail() {
+  // const [production, setProduction] = useState({crew_members:[]})
   // const [error, setError] = useState(null)
   //Student Challenge: GET One 
+  const production = useSelector(state => state.production.spotlight)
   const {prod_id} = useParams()
   const history = useHistory()
+  const dispatch = useDispatch()
 
   useEffect(()=>{
     fetch(`/productions/${prod_id}`)
     .then(response => {
       if (response.ok){ //! if it's in 200-299 range
-        response.json().then(setProduction)
+        response.json().then(production => dispatch(setProduction(production)))
       } else {
-        response.json().then(errorObj => handleNewError(errorObj.message))
+        response.json().then(errorObj => dispatch(addError(errorObj.message)))
       }
     })
-    .catch(handleNewError)
-  },[prod_id, handleNewError])
+    .catch(error => dispatch(addError(error)))
+  },[prod_id])
 
   const checkToken = () => fetch("/check", {
     headers: {
       //! NOTICE HERE I send the refresh token since I know the access token is expired
-      "Authorization": `Bearer ${localStorage.getItem("jwt_token")}`
+      "Authorization": `Bearer ${getToken()}`
     }
   })
 
@@ -34,7 +39,7 @@ function ProductionDetail({handleEdit, deleteProduction, handleNewError}) {
       method: "POST",
       headers: {
         //! NOTICE HERE I send the refresh token since I know the access token is expired
-        "Authorization": `Bearer ${localStorage.getItem("refresh_token")}`
+        "Authorization": `Bearer ${getRefreshToken()}`
       }
     })
   }
@@ -43,18 +48,18 @@ function ProductionDetail({handleEdit, deleteProduction, handleNewError}) {
     return fetch(`/productions/${prod_id}`, {
       method: "DELETE",
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem("jwt_token")}`
+        'Authorization': `Bearer ${getToken()}`
       }
     })
     .then(response => {
       if (response.ok){ //! 204
-        deleteProduction(prod_id)
+        dispatch(deleteProduction(prod_id))
         history.push("/")
       } else {
-        response.json().then(errorObj => handleNewError(errorObj.message))
+        response.json().then(errorObj => dispatch(addError(errorObj.message)))
       }
     })
-    .catch(handleNewError)
+    .catch(error => dispatch(addError(error)))
   }
 
   const handleDelete = () => {
@@ -68,19 +73,23 @@ function ProductionDetail({handleEdit, deleteProduction, handleNewError}) {
           if (res.ok) { //! refresh token was still valid
             res.json().then(respObj => {
               //! update the expired token in localStorage with the newly created token coming from the API  
-              localStorage.setItem("jwt_token", respObj.jwt_token)
+              setToken(respObj.jwt_token)
             })
             .then(deleteFetchProduction) //! try again to fire the DELETE now that a new token has been issued
           } else {
-            res.json().then(errorObj => handleNewError(errorObj.msg))
+            res.json().then(errorObj => dispatch(addError(errorObj.msg)))
           }
         })
       }
     })
-    .catch(err => handleNewError(err))
+    .catch(error => dispatch(addError(error)))
   }
 
-  if (!production.id) {
+  const handleEdit = () => {
+    dispatch(setEditMode(true))
+    history.push(`/productions/edit/${production.id}`)
+  }
+  if (!production) {
     return <NotFound />
   }
   const {id, title, genre, image,description, crew_members} = production 
@@ -96,12 +105,12 @@ function ProductionDetail({handleEdit, deleteProduction, handleNewError}) {
               <p>{description}</p>
               <h2>Cast Members</h2>
               <ul>
-                {crew_members.map(cast => <li key={cast.id}>{`${cast.role} : ${cast.name}`}</li>)}
+                {crew_members && crew_members.map(cast => <li key={cast.id}>{`${cast.role} : ${cast.name}`}</li>)}
               </ul>
             </div>
             <img src={image} alt={title}/>
           </div>
-      <button onClick={()=> handleEdit(production)} >Edit Production</button>
+      <button onClick={handleEdit} >Edit Production</button>
       <button onClick={handleDelete} >Delete Production</button>
 
       </CardDetail>

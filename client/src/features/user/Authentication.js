@@ -3,11 +3,12 @@ import {useHistory} from 'react-router-dom'
 import styled from "styled-components";
 import { useFormik } from "formik"
 import * as yup from "yup"
+import {useDispatch} from 'react-redux'
+import {setUser, addError} from './userSlice'
 
-
-function Authentication({updateUser, handleNewError, fetchProductions}) {
+function Authentication({fetchProductions}) {
     const [signUp, setSignUp] = useState(false)
-    const history = useHistory()
+    const dispatch = useDispatch()
 
     const handleClick = () => setSignUp((signUp) => !signUp)
     const signupSchema = yup.object().shape({
@@ -28,7 +29,6 @@ function Authentication({updateUser, handleNewError, fetchProductions}) {
         password: yup.string()
             .required('Please enter a user password') 
     })
-
     const url = signUp ? "/signup" : "/login"
 
     const formik = useFormik({
@@ -49,16 +49,17 @@ function Authentication({updateUser, handleNewError, fetchProductions}) {
             .then(res => {
                 if (res.ok) {
                     res.json().then(respObj => {
-                        updateUser(respObj.user)
+                        // updateUser(respObj.user)
+                        dispatch(setUser(respObj.user))
                         localStorage.setItem("jwt_token", respObj.jwt_token)
                         localStorage.setItem("refresh_token", respObj.refresh_token)
                     })
                     .then(fetchProductions)
                 } else {
-                    res.json().then(errorObj => handleNewError(errorObj.message))
+                    res.json().then(errorObj => dispatch(addError(errorObj.message)))
                 }
             })
-            .catch(handleNewError)
+            .catch(error => dispatch(addError(error)))
         },
     })
 
