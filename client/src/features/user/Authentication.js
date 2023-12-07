@@ -1,10 +1,10 @@
 import React, {useState} from 'react'
-import {useHistory} from 'react-router-dom'
 import styled from "styled-components";
 import { useFormik } from "formik"
 import * as yup from "yup"
 import {useDispatch} from 'react-redux'
-import {setUser, addError} from './userSlice'
+import {fetchRegister} from './userSlice'
+import { setToken, setRefreshToken } from '../../utility/main';
 
 function Authentication({fetchProductions}) {
     const [signUp, setSignUp] = useState(false)
@@ -38,29 +38,10 @@ function Authentication({fetchProductions}) {
             password:''
         },
         validationSchema: signUp ? signupSchema : loginSchema,
-        onSubmit: (values) => {
-            fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(values)
-            })
-            .then(res => {
-                if (res.ok) {
-                    res.json().then(respObj => {
-                        // updateUser(respObj.user)
-                        dispatch(setUser(respObj.user))
-                        localStorage.setItem("jwt_token", respObj.jwt_token)
-                        localStorage.setItem("refresh_token", respObj.refresh_token)
-                    })
-                    .then(fetchProductions)
-                } else {
-                    res.json().then(errorObj => dispatch(addError(errorObj.message)))
-                }
-            })
-            .catch(error => dispatch(addError(error)))
-        },
+        onSubmit: (values) => dispatch(fetchRegister({url, values})).then((action) => {
+            setToken(action.payload.jwt_token)
+            setRefreshToken(action.payload.refresh_token)
+        })
     })
 
     return (

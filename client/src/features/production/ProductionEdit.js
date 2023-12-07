@@ -62,27 +62,6 @@ function ProductionFormEdit() {
     })
   }
 
-  const patchFetchProductions = (values) => {
-    return fetch(`/productions/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getToken()}`
-        },
-        body: JSON.stringify(values)
-      })
-      .then(res => {
-        if (res.ok) {
-          res.json().then(production => {
-            dispatch(setProduction(production))
-            history.push(`/productions/${id}`)
-          })
-        } else {
-          res.json().then(errorObj => dispatch(addError(errorObj.message)))
-        }
-      })
-      .catch(error => dispatch(addError(error)))
-  }
   const {id, title, genre, budget, image, director, description, ongoing} = production
   // 8.✅ useFormik hook
   const formik = useFormik({
@@ -96,28 +75,7 @@ function ProductionFormEdit() {
       ongoing
     },
     validationSchema: productionSchema,
-    onSubmit: (values) => {
-      checkToken() //! make sure token is still valid
-      .then(resp => {
-        if (resp.ok) {
-          patchFetchProductions(values) //! try to fire a PATCH with a valid token
-        } else if (resp.status === 401) { //! token is invalid but maybe refresh token is still valid
-          postRefreshToken() //! try to refresh the token
-          .then(res => {
-            if (res.ok) { //! refresh token was still valid
-              res.json().then(respObj => {
-                //! update the expired token in localStorage with the newly created token coming from the API  
-                setToken(respObj.jwt_token)
-              })
-              .then(() => patchFetchProductions(values)) //! try again to fire the PATCH now that a new token has been issued
-            } else {
-              res.json().then(errorObj => dispatch(addError(errorObj.msg)))
-            }
-          })
-        }
-      })
-      .catch(err => dispatch(addError(err)))
-    }
+    onSubmit: (values) => {}
   })
 
   if(!production) return <h2>Loading</h2>
