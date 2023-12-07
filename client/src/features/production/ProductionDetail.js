@@ -1,17 +1,12 @@
 import  {useParams, useHistory } from 'react-router-dom'
-import {useEffect, useState} from 'react'
+import {useEffect} from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {deleteProduction, setProduction, addError, setEditMode, fetchOneProduction, fetchDeleteProduction} from './productionSlice'
-import {getToken, getRefreshToken, setToken, checkToken, postRefreshToken} from '../../utility/main'
+import {setEditMode, fetchOneProduction, fetchDeleteProduction} from './productionSlice'
 import styled from 'styled-components'
 import NotFound from '../../components/NotFound'
 
 function ProductionDetail() {
-  // const [production, setProduction] = useState({crew_members:[]})
-  // const [error, setError] = useState(null)
-  //Student Challenge: GET One 
   const production = useSelector(state => state.production.spotlight)
-  const loading = useSelector(state => state.production.loading)
   const {prod_id} = useParams()
   const history = useHistory()
   const dispatch = useDispatch()
@@ -19,7 +14,6 @@ function ProductionDetail() {
   useEffect(()=>{
     dispatch(fetchOneProduction(prod_id))
   },[prod_id])
-
 
   const handleDelete = async () => {
       const {type, meta, payload} = await dispatch(fetchDeleteProduction(prod_id))
@@ -32,14 +26,13 @@ function ProductionDetail() {
     dispatch(setEditMode(true))
     history.push(`/productions/edit/${production.id}`)
   }
+
   if (!production) {
     return <NotFound />
   }
-  // if (loading) {
-  //   return <h2>Loading...</h2>
-  // }
+
   const {id, title, genre, image,description, crew_members} = production 
-  // if(error) return <h2>{error}</h2>
+
   return (
       <CardDetail id={id}>
         <h1>{title}</h1>

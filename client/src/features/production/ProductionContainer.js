@@ -1,11 +1,9 @@
 import styled from 'styled-components'
 import ProductionCard from './ProductionCard'
 import {useSelector} from 'react-redux'
-// import { selectProductions } from './productionSlice'
 
 function ProductionContainer() {
     const productions = useSelector(state => state.production.data)
-    // const productions = selectProductions(useSelector(state => state))
 
     return (
         <div>

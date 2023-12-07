@@ -4,33 +4,33 @@ import { useFormik } from "formik"
 import * as yup from "yup"
 import {useDispatch} from 'react-redux'
 import {fetchRegister} from './userSlice'
+import { fetchAllProductions } from '../production/productionSlice';
 import { setToken, setRefreshToken } from '../../utility/main';
 
-function Authentication({fetchProductions}) {
+function Authentication() {
     const [signUp, setSignUp] = useState(false)
     const dispatch = useDispatch()
 
-    const handleClick = () => setSignUp((signUp) => !signUp)
     const signupSchema = yup.object().shape({
         username: yup.string()
-            .required("Please enter a user name"),
+        .required("Please enter a user name"),
         email: yup.string()
-            .email("Must be a valid email")
-            .required("Please enter a user email"),
+        .email("Must be a valid email")
+        .required("Please enter a user email"),
         password: yup.string()
-            .required('Please enter a user password') 
-            .min(8, 'Password is too short - should be 8 chars minimum.')
-            .matches(/[a-zA-Z0-9]/, 'Password can only contain Latin letters and numbers.')
+        .required('Please enter a user password') 
+        .min(8, 'Password is too short - should be 8 chars minimum.')
+        .matches(/[a-zA-Z0-9]/, 'Password can only contain Latin letters and numbers.')
     })
     const loginSchema = yup.object().shape({
         email: yup.string()
-            .email("Must be a valid email")
-            .required("Please enter a user email"),
+        .email("Must be a valid email")
+        .required("Please enter a user email"),
         password: yup.string()
-            .required('Please enter a user password') 
+        .required('Please enter a user password') 
     })
     const url = signUp ? "/signup" : "/login"
-
+    
     const formik = useFormik({
         initialValues: {
             username:'',
@@ -38,12 +38,18 @@ function Authentication({fetchProductions}) {
             password:''
         },
         validationSchema: signUp ? signupSchema : loginSchema,
-        onSubmit: (values) => dispatch(fetchRegister({url, values})).then((action) => {
-            setToken(action.payload.jwt_token)
-            setRefreshToken(action.payload.refresh_token)
-        })
+        onSubmit: async (values) => {
+            const action = await dispatch(fetchRegister({url, values}))
+            if (typeof action.payload !== "string") {
+                setToken(action.payload.jwt_token)
+                setRefreshToken(action.payload.refresh_token)
+                dispatch(fetchAllProductions())
+            }
+        }
     })
-
+    
+    const handleClick = () => setSignUp((signUp) => !signUp)
+    
     return (
         <> 
             <div id="register-switch">

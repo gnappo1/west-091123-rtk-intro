@@ -15,8 +15,9 @@ export const checkToken = async () => {
             if (followResp.ok) {
                 const { jwt_token } = await followResp.json()
                 setToken(jwt_token)
-                return followResp.user
+                return followResp
             } else {
+                
                 const { msg, message } = await followResp.json()
                 throw Error(msg || message)
             }
@@ -24,6 +25,7 @@ export const checkToken = async () => {
             return resp
         }
     } catch (error) {
+        
         return error
     }
 }

@@ -27,7 +27,7 @@ app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies", "json", "query_string"
 app.config["JWT_COOKIE_SECURE"] = False
 
 # Set access token exp length
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=1)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=5)
 
 # Set refresh token exp length
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=3)

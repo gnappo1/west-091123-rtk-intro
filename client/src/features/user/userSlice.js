@@ -11,7 +11,7 @@ const initialState = {
     loading: true
 }
 
-const register = async ({url, values}, thunkAPI) => {
+const register = async ({url, values}, ) => {
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -30,8 +30,7 @@ const register = async ({url, values}, thunkAPI) => {
         return error
     }
 }
-const fetchMe = async (thunkAPI) => {
-    console.log("🚀 ~ file: userSlice.js:28 ~ fetchMe ~ thunkAPI:", thunkAPI)
+const fetchMe = async () => {
     try {
         const resp = await fetch("/me", {
             headers: {
@@ -60,7 +59,7 @@ const fetchMe = async (thunkAPI) => {
     }
 }
 
-export const userSlice = createSlice({
+const userSlice = createSlice({
     name: "user",
     initialState,
     reducers: (create) => ({
@@ -68,13 +67,13 @@ export const userSlice = createSlice({
             state.data = action.payload
             state.loading = false
         }),
-        logout: create.reducer((state, action) => {
+        logout: create.reducer((state) => {
             state.data = null
         }),
         addError: create.reducer((state, action) => {
             state.errors.push(action.payload)
         }),
-        clearErrors: create.reducer((state, action) => {
+        clearErrors: create.reducer((state) => {
             state.errors = []
         }),
         fetchCurrentUser: create.asyncThunk(
@@ -82,6 +81,7 @@ export const userSlice = createSlice({
             {
                 pending: (state) => {
                     state.loading = true
+                    state.errors= []
                 },
                 rejected: (state, action) => {
                     state.loading = false
@@ -89,7 +89,11 @@ export const userSlice = createSlice({
                 },
                 fulfilled: (state, action) => {
                     state.loading = false
-                    state.data = action.payload.user
+                    if (typeof action.payload === "string") {
+                        state.errors.push(action.payload)
+                    } else {
+                        state.data = action.payload.user
+                    }
                 },
             }
         ),
@@ -98,6 +102,7 @@ export const userSlice = createSlice({
             {
                 pending: (state) => {
                     state.loading = true
+                    state.errors = []
                 },
                 rejected: (state, action) => {
                     state.loading = false
@@ -105,14 +110,17 @@ export const userSlice = createSlice({
                 },
                 fulfilled: (state, action) => {
                     state.loading = false
-                    state.data = action.payload.user
+                    if (typeof action.payload === "string") {
+                        state.errors.push(action.payload)
+                    } else {
+                        state.data = action.payload.user
+                    }
                 },
             }
         )
     }),
     selectors: {
         selectUser(state){
-            debugger
             return state.data
         },
         selectErrors(state){

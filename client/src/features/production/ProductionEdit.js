@@ -1,11 +1,10 @@
 import styled from 'styled-components'
-import { useHistory, useLocation } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { setProduction, addError } from './productionSlice'
-import { useFormik } from "formik"
+import { fetchPatchProduction } from './productionSlice'
+import { Formik } from "formik"
 import * as yup from "yup"
-import { getToken, setToken } from '../../utility/main'
-
+import NotFound from '../../components/NotFound'
 
 
 function ProductionFormEdit() {
@@ -13,15 +12,21 @@ function ProductionFormEdit() {
   const history = useHistory()
   const dispatch = useDispatch()
   const production = useSelector(state => state.production.spotlight)
+  //! if we connect to the store, we can get the loading state
+  //! but the loading state will change when we incorrectly fire our PATCH request (aka did not pass backend validation)
+  //! since this component subscribes to a changing slice of state, the component does what? Re-renders!
+  //! Goodbye formik state the form resets to initialState, aka the values currently in the store
+  //! so we will need to use local state to handle loading
+  // const loading = useSelector(state => state.production.loading)
   // 7.✅ Use yup to create client side validations
   const productionSchema = yup.object().shape({
     title: yup.string()
       .min(3, 'Title must be at least 3 characters')
       .max(50, 'Title must be at most 50 characters')
       .required('Title is required'),
-    genre: yup.string()
-      .oneOf(['Drama', 'Musical', 'Opera'])
-      .required('Genre is required'),
+    // genre: yup.string()
+    //   .oneOf(['Drama', 'Musical', 'Opera'])
+    //   .required('Genre is required'),
     budget: yup.number()
       .positive('Budget must be a positive number')
       .max(1000000000, 'Budget must be less than 1 billion')
@@ -45,64 +50,56 @@ function ProductionFormEdit() {
       .required('Description is required')
   })
 
-  const checkToken = () => fetch("/check", {
-    headers: {
-      //! NOTICE HERE I send the refresh token since I know the access token is expired
-      "Authorization": `Bearer ${getToken()}`
-    }
-  })
-
-  const postRefreshToken = () => {
-    return fetch("/refresh", {
-      method: "POST",
-      headers: {
-        //! NOTICE HERE I send the refresh token since I know the access token is expired
-        "Authorization": `Bearer ${getToken()}`
-      }
-    })
-  }
-
+  if(!production) return <NotFound />
+  // if(loading) return <h2>Loading</h2>
+  
   const {id, title, genre, budget, image, director, description, ongoing} = production
-  // 8.✅ useFormik hook
-  const formik = useFormik({
-    initialValues: {
-      title,
-      genre,
-      budget,
-      image,
-      director,
-      description,
-      ongoing
-    },
-    validationSchema: productionSchema,
-    onSubmit: (values) => {}
-  })
-
-  if(!production) return <h2>Loading</h2>
 
   return (
       <div className='App'>
-        <Form onSubmit={formik.handleSubmit}>
-          <label>Title </label>
-          <input type='text' name='title' value={formik.values.title} onChange={formik.handleChange} onBlur={formik.handleBlur} />
-          {formik.errors.title && formik.touched.title ? <div className="error-message show">{formik.errors.title}</div> : null}
-          <label> Genre</label>
-          <input type='text' name='genre' value={formik.values.genre} onChange={formik.handleChange} onBlur={formik.handleBlur} />
-          {formik.errors.genre && formik.touched.genre ? <div className="error-message show">{formik.errors.genre}</div> : null}
-          <label>Budget</label>
-          <input type='number' name='budget' value={formik.values.budget} onChange={formik.handleChange} onBlur={formik.handleBlur} />
-          {formik.errors.budget && formik.touched.budget ? <div className="error-message show">{formik.errors.budget}</div> : null}
-          <label>Image</label>
-          <input type='text' name='image'  value={formik.values.image} onChange={formik.handleChange} onBlur={formik.handleBlur} />
-          {formik.errors.image && formik.touched.image ? <div className="error-message show">{formik.errors.image}</div> : null}
-          <label>Director</label>
-          <input type='text' name='director' value={formik.values.director} onChange={formik.handleChange} onBlur={formik.handleBlur} />
-          {formik.errors.director && formik.touched.director ? <div className="error-message show">{formik.errors.director}</div> : null}
-          <label>Description</label>
-          <textarea type='text' rows='4' cols='50' name='description' value={formik.values.description} onChange={formik.handleChange} onBlur={formik.handleBlur} />
-          {formik.errors.description && formik.touched.description ? <div className="error-message show">{formik.errors.description}</div> : null}
-          <input type='submit' disabled={formik.isSubmitting} />
-        </Form> 
+        <Formik
+          initialValues={{ title, genre, budget, image, director, description, ongoing }}
+          validationSchema={productionSchema}
+          onSubmit={async (values) => {
+            const action = await dispatch(fetchPatchProduction({id, values}))
+            if (typeof action.payload !== "string") {
+              history.push(`/productions/${id}`)
+            }
+          }}
+        >
+          {({
+            values,
+            errors,
+            touched,
+            handleChange,
+            handleBlur,
+            handleSubmit,
+            isSubmitting,
+            /* and other goodies */
+          }) => (
+            <Form onSubmit={handleSubmit}>
+              <label>Title </label>
+              <input type='text' name='title' value={values.title} onChange={handleChange} onBlur={handleBlur} />
+              {errors.title && touched.title ? <div className="error-message show">{errors.title}</div> : null}
+              <label> Genre</label>
+              <input type='text' name='genre' value={values.genre} onChange={handleChange} onBlur={handleBlur} />
+              {errors.genre && touched.genre ? <div className="error-message show">{errors.genre}</div> : null}
+              <label>Budget</label>
+              <input type='number' name='budget' value={values.budget} onChange={handleChange} onBlur={handleBlur} />
+              {errors.budget && touched.budget ? <div className="error-message show">{errors.budget}</div> : null}
+              <label>Image</label>
+              <input type='text' name='image'  value={values.image} onChange={handleChange} onBlur={handleBlur} />
+              {errors.image && touched.image ? <div className="error-message show">{errors.image}</div> : null}
+              <label>Director</label>
+              <input type='text' name='director' value={values.director} onChange={handleChange} onBlur={handleBlur} />
+              {errors.director && touched.director ? <div className="error-message show">{errors.director}</div> : null}
+              <label>Description</label>
+              <textarea type='text' rows='4' cols='50' name='description' value={values.description} onChange={handleChange} onBlur={handleBlur} />
+              {errors.description && touched.description ? <div className="error-message show">{errors.description}</div> : null}
+              <input type='submit' disabled={isSubmitting} />
+            </Form>
+          )}
+        </Formik>
       </div>
     )
   }

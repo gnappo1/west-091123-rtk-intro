@@ -2,12 +2,13 @@
     // Request response cycle
     //Note: This was build using v5 of react-router-dom
 import { Route, Switch } from 'react-router-dom'
-import { clearErrors } from './features/user/userSlice'
+import { clearErrors as clearUserErrors} from './features/user/userSlice'
+import { clearErrors as clearProductionErrors} from './features/production/productionSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import {createGlobalStyle} from 'styled-components'
 import { fetchAllProductions } from './features/production/productionSlice'
 import { fetchCurrentUser } from './features/user/userSlice'
-import {useEffect } from 'react'
+import {useEffect, useCallback } from 'react'
 import Home from './components/Home'
 import ProductionForm from './features/production/ProductionForm'
 import ProductionEdit from './features/production/ProductionEdit'
@@ -21,29 +22,37 @@ import { setToken } from './utility/main'
 
 function App() {
   const user = useSelector(state => state.user.data)
-  const errors = useSelector(state => state.user.errors)
+  const userErrors = useSelector(state => state.user.errors)
+  const productionErrors = useSelector(state => state.production.errors)
   const dispatch = useDispatch()
+  const errors = [...userErrors, ...productionErrors]
+  const clearErrorsAction = useCallback(() => {
+    dispatch(clearUserErrors(""))
+    dispatch(clearProductionErrors(""))
+  }, [dispatch, clearUserErrors, clearProductionErrors]);
 
   useEffect(() => {
-    if (!user) {
-      //! ask the API if they know who we are with the jwt token from localStorage
-      dispatch(fetchCurrentUser()).then((action) => {
-        if (action.payload.flag === "refresh") {
-          setToken(action.payload.jwt_token)
+    (async () => {
+      if (!user) {
+        const action = await dispatch(fetchCurrentUser())
+        if (typeof action.payload !== "string") {
+          if (action.payload.flag === "refresh") {
+            setToken(action.payload.jwt_token)
+          }
+          dispatch(fetchAllProductions())
         }
-        dispatch(fetchAllProductions())
-      })
-    }
+      }
+    })()
   }, [user])
 
   useEffect(() => {
     if (errors.length) {
-      const timeout = setTimeout(() => dispatch(clearErrors("")), 3000)
+      const timeout = setTimeout(clearErrorsAction, 3000)
       return () => {
         clearTimeout(timeout)
       };
     }
-  }, [errors]);
+  }, [errors, clearErrorsAction]);
 
   if(!user) return (
     <>

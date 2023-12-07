@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {Link} from 'react-router-dom'
 import styled from 'styled-components'
-import { useHistory } from 'react-router-dom'
 import { GiHamburgerMenu } from 'react-icons/gi'
-import { logout, selectUser } from '../features/user/userSlice'
+import { logout } from '../features/user/userSlice'
 
 function Navigation() {
  const [menu, setMenu] = useState(false)
  const dispatch = useDispatch()
-  // const {user} = selectUser()
   const user = useSelector(state => state.user.data)
  const handleLogout = () => {
     //! No need to send a request to the API
@@ -17,7 +15,6 @@ function Navigation() {
     //! the frontend simply has to remove the tokenS (as in both of them) from localStorage 
     localStorage.removeItem("jwt_token")
     localStorage.removeItem("refresh_token")
-    // updateUser(null)
     dispatch(logout())
  }
 

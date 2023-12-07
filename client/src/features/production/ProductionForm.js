@@ -1,26 +1,23 @@
 import React from 'react'
 import styled from 'styled-components'
 import { useHistory } from 'react-router-dom'
-// 6.✅ Verify formik and yet have been added to our package.json dependencies 
 import { Formik } from 'formik';
 import * as yup from 'yup';
-import { getRefreshToken, getToken, setToken } from '../../utility/main';
 import { useDispatch } from 'react-redux';
-import { addError, addProduction } from './productionSlice';
+import { fetchPostProduction } from './productionSlice';
 
 
 function ProductionForm() {
   const dispatch = useDispatch()
   const history = useHistory()
-  // 7.✅ Use yup to create client side validations
   const productionSchema = yup.object().shape({
     title: yup.string()
       .min(2, "Titles must be at least 2 chars long")
       .max(50, "Titles must be 50 chars long max")
       .required("Title is required"),
-    genre: yup.string()
-      .oneOf(["Drama", "Musical", "Opera"])
-      .required("Genre has to be one of Drama, Musical, Opera"),
+    // genre: yup.string()
+    //   .oneOf(["Drama", "Musical", "Opera"])
+    //   .required("Genre has to be one of Drama, Musical, Opera"),
     budget: yup.number()
       .positive("Budget has to be a positive integer")
       .max(10000000, "Budget must be 50 chars long max")
@@ -39,72 +36,18 @@ function ProductionForm() {
       .required("Description is required")
   })
 
-  const postFetchProductions = (values) => {
-    return fetch("/productions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        'Authorization': `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({...values, ongoing: true})
-    })
-    .then(resp => {
-      if (resp.ok) { //! 201 successfully created
-        resp.json().then((newProduction) => {
-          dispatch(addProduction(newProduction))
-          history.push("/")
-        })
-      } else { //! validation errors
-        resp.json().then(errorObj => dispatch(addError(errorObj.message)))
-      }
-    })
-      .catch(err => dispatch(addError(err)))
-  }
 
-  const checkToken = () => fetch("/check", {
-    headers: {
-      //! NOTICE HERE I send the refresh token since I know the access token is expired
-      "Authorization": `Bearer ${getToken()}`
-    }
-  })
-
-  const postRefreshToken = () => {
-    return fetch("/refresh", {
-      method: "POST",
-      headers: {
-        //! NOTICE HERE I send the refresh token since I know the access token is expired
-        "Authorization": `Bearer ${getRefreshToken()}`
-      }
-    })
-  }
-
-  // 9.✅ useFormik hook
     return (
       <div className='App'>
         <Formik
           initialValues={{ title: '', genre: '', budget: '', image: '', director: '', description: '', ongoing: '' }}
           validationSchema={productionSchema}
-          onSubmit={(values) => {
-            checkToken() //! make sure token is still valid
-            .then(resp => {
-              if (resp.ok) {
-                postFetchProductions(values) //! try to fire a POST with a valid token
-              } else if (resp.status === 401) { //! token is invalid but maybe refresh token is still valid
-                postRefreshToken() //! try to refresh the token
-                .then(res => {
-                  if (res.ok) { //! refresh token was still valid
-                    res.json().then(respObj => {
-                      //! update the expired token in localStorage with the newly created token coming from the API  
-                      setToken(respObj.jwt_token)
-                    })
-                    .then(() => postFetchProductions(values)) //! try again to fire the POST now that a new token has been issued
-                  } else {
-                    res.json().then(errorObj => dispatch(addError(errorObj.msg)))
-                  }
-                })
-              }
-            })
-            .catch(err => dispatch(addError(err)))
+          onSubmit={async (values) => {
+            const action = await dispatch(fetchPostProduction({...values, ongoing: true}))
+            
+            if (typeof action.payload !== "string") {
+              history.push("/")
+            }
           }}
         >
           {({

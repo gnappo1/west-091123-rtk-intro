@@ -11,8 +11,7 @@ const initialState = {
     spotlight: null,
     loading: true
 }
-const fetchAll = async (thunkAPI) => {
-    console.log("🚀 ~ file: productionSlice.js:13 ~ thunkAPI:", thunkAPI)
+const fetchAll = async (asyncThunk) => {
     try {
         const resp = await fetch("/productions")
         const data = await resp.json()
@@ -40,42 +39,20 @@ const fetchOne = async (prod_id, asyncThunk) => {
     }
 }
 
-const deleteFetchProduction = async (prod_id, asyncThunk) => {
+const postProduction = async (values, asyncThunk) => {
     try {
         const respCheckToken = await checkToken()
         if (respCheckToken.ok) {
-            const resp = await fetch(`/productions/${prod_id}`, {
-                method: "DELETE",
+            const resp = await fetch('/productions', {
+                method: "POST",
                 headers: {
-                    'Authorization': `Bearer ${getToken()}`
-                }
-            })
-            if (resp.ok) { //! 204
-                return prod_id //! should be nothing (no response body)
-            } else {
-                const data = await resp.json()
-                throw data.message || data.msg
-            }
-        } else {
-            const data = await respCheckToken.json()
-            throw data.message || data.msg
-        }
-    } catch (error) {
-        return error
-    }
-}
-const patchFetchProduction = async (prod_id, formData, asyncThunk) => {
-    try {
-        const respCheckToken = await checkToken()
-        if (respCheckToken.ok) {
-            const resp = await fetch(`/productions/${prod_id}`, {
-                method: "PATCH",
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`
+                    'Authorization': `Bearer ${getToken()}`,
+                    "Content-Type": "application/json"
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(values)
             })
             const data = await resp.json()
+            
             if (resp.ok) {
                 return data
             } else {
@@ -89,37 +66,83 @@ const patchFetchProduction = async (prod_id, formData, asyncThunk) => {
         return error
     }
 }
+
+const patchProduction = async ({id, values}, asyncThunk) => {
+    console.log("🚀 ~ file: productionSlice.js:67 ~ patchFetchProduction ~ asyncThunk:", asyncThunk)
+    try {
+        const respCheckToken = await checkToken()
+        
+        if (respCheckToken.ok) {
+            const resp = await fetch(`/productions/${id}`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(values)
+            })
+            const data = await resp.json()
+            
+            if (resp.ok) {
+                return data
+            } else {
+                throw data.message || data.msg
+            }
+        } else {
+            const data = await respCheckToken.json()
+            
+            throw data.message || data.msg
+        }
+    } catch (error) {
+        return error
+    }
+}
+
+const deleteProduction = async (prod_id, asyncThunk) => {
+    try {
+        const respCheckToken = await checkToken()
+        
+        if (respCheckToken.ok) {
+            const resp = await fetch(`/productions/${prod_id}`, {
+                method: "DELETE",
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`
+                }
+            })
+            if (resp.ok) { //! 204 NO CONTENT
+                return {prod_id}
+            } else {
+                const data = await resp.json()
+                throw data.message || data.msg
+            }
+        } else {
+            const data = await respCheckToken.json()
+            throw data.message || data.msg
+        }
+    } catch (error) {
+        return error
+    }
+}
+
 const productionSlice = createSlice({
     name: "production",
     initialState,
     reducers: (create) => ({
-        setProductions: create.reducer((state, action) => {
-            state.data = action.payload
-            state.loading = false
-        }),
         setProduction: create.reducer((state, action) => {
             state.spotlight = action.payload
             state.loading = false
         }),
-        addProduction: create.reducer((state, action) => {
-            state.data.push(action.payload)
-        }),
-        updateProduction: create.reducer((state, action) => {
-            const updateProdIndex = state.data.findIndex(production => production.id === action.payload)
-            state.data[updateProdIndex] = action.payload
-        }),
         setEditMode: create.reducer((state, action) => {
             state.editMode = action.payload
-        }),
-        deleteProduction: create.reducer((state, action) => {
-            const deleteProdIndex = state.data.findIndex(production => production.id === action.payload)
-            state.data.splice(deleteProdIndex, 1)
+            state.loading = false
         }),
         addError: create.reducer((state, action) => {
             state.errors.push(action.payload)
+            state.loading = false
         }),
         clearErrors: create.reducer((state) => {
             state.errors = []
+            state.loading = false
         }),
         fetchAllProductions: create.asyncThunk(
             fetchAll,
@@ -155,8 +178,8 @@ const productionSlice = createSlice({
                 },
             }
         ),
-        fetchDeleteProduction: create.asyncThunk(
-            deleteFetchProduction,
+        fetchPostProduction: create.asyncThunk(
+            postProduction,
             {
                 pending: (state) => {
                     state.errors = []
@@ -168,15 +191,67 @@ const productionSlice = createSlice({
                 },
                 fulfilled: (state, action) => {
                     state.loading = false
-                    state.data.splice(state.data.findIndex(production => production.id === parseInt(action.payload)), 1)
-                    state.spotlight = null
+                    if (!action.payload.id) {
+                        state.errors.push(action.payload)
+                    } else {
+                        state.data.push(action.payload)
+                    }
                 },
             }
-        )
+        ),
+        fetchPatchProduction: create.asyncThunk(
+            patchProduction,
+            {
+                pending: (state) => {
+                    state.errors = []
+                    state.loading = true
+                },
+                rejected: (state, action) => {
+                    state.loading = false
+                    state.errors.push(action.payload)
+                },
+                fulfilled: (state, action) => {
+                    state.loading = false
+                    if (!action.payload.id) {
+                        state.errors.push(action.payload)
+                    } else {
+                        const index = state.data.findIndex(production => production.id === parseInt(action.payload.id))
+                        state.data[index] = action.payload
+                        state.spotlight = null
+                    }
+                },
+            }
+        ),
+        fetchDeleteProduction: create.asyncThunk(
+            deleteProduction,
+            {
+                pending: (state) => {
+                    state.errors = []
+                    state.loading = true
+                },
+                rejected: (state, action) => {
+                    state.loading = false
+                    state.errors.push(action.payload)
+                },
+                fulfilled: (state, action) => {
+                    state.loading = false
+                    
+                    if (typeof action.payload === "string") {
+                        state.errors.push(action.payload)
+                    } else {
+                        const idx = state.data.findIndex(production => production.id === parseInt(action.payload.prod_id))
+                        state.data.splice(idx, 1)
+                        state.spotlight = null
+                    }
+                },
+            }
+        ),
     }),
     extraReducers: (builder) => {
         builder.addCase('user/fetchRegister/fulfilled', (state, action) => {
-            debugger
+            //! This is where I can listen in actions that are not part of this slice
+            //! and still perform state changes on this slice
+            //! This is just an example of how to do it
         })
     },
     selectors: {
@@ -192,6 +267,6 @@ const productionSlice = createSlice({
     }
 })
 
-export const {setProductions, setProduction, setEditMode, addProduction, updateProduction, deleteProduction, addError, clearErrors, fetchAllProductions, fetchOneProduction, fetchDeleteProduction} = productionSlice.actions
+export const {setProduction, setEditMode, addError, clearErrors, fetchAllProductions, fetchOneProduction, fetchPostProduction, fetchPatchProduction, fetchDeleteProduction} = productionSlice.actions
 export const {selectProductions, selectErrors} = productionSlice.selectors
 export default productionSlice.reducer
