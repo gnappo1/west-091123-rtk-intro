@@ -66,9 +66,11 @@ const userSlice = createSlice({
         setUser: create.reducer((state, action) => {
             state.data = action.payload
             state.loading = false
+            state.errors = []
         }),
         logout: create.reducer((state) => {
             state.data = null
+            state.errors = []
         }),
         addError: create.reducer((state, action) => {
             state.errors.push(action.payload)
@@ -81,7 +83,7 @@ const userSlice = createSlice({
             {
                 pending: (state) => {
                     state.loading = true
-                    state.errors= []
+                    state.errors = []
                 },
                 rejected: (state, action) => {
                     state.loading = false

@@ -4,6 +4,7 @@ import {Link} from 'react-router-dom'
 import styled from 'styled-components'
 import { GiHamburgerMenu } from 'react-icons/gi'
 import { logout } from '../features/user/userSlice'
+import toast from 'react-hot-toast'
 
 function Navigation() {
  const [menu, setMenu] = useState(false)
@@ -16,6 +17,7 @@ function Navigation() {
     localStorage.removeItem("jwt_token")
     localStorage.removeItem("refresh_token")
     dispatch(logout())
+    toast.success("You have successfully logged out!")
  }
 
     return (

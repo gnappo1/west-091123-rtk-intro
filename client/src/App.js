@@ -18,6 +18,7 @@ import Authentication from './features/user/Authentication'
 import NotFound from './components/NotFound'
 import "./App.css"
 import { setToken } from './utility/main'
+import { Toaster } from 'react-hot-toast';
 
 
 function App() {
@@ -47,10 +48,11 @@ function App() {
 
   useEffect(() => {
     if (errors.length) {
-      const timeout = setTimeout(clearErrorsAction, 3000)
-      return () => {
-        clearTimeout(timeout)
-      };
+      clearErrorsAction()
+      // const timeout = setTimeout(clearErrorsAction, 3000)
+      // return () => {
+      //   clearTimeout(timeout)
+      // };
     }
   }, [errors, clearErrorsAction]);
 
@@ -58,15 +60,15 @@ function App() {
     <>
       <GlobalStyle />
       <Navigation/>
-      <div>{errors.join(";\n")}</div>
+      <Toaster />
       <Authentication />
     </>
   )
   return (
     <>
-    <GlobalStyle />
-    <Navigation />
-    <div>{errors.join(";\n")}</div>
+      <GlobalStyle />
+      <Navigation />
+      <Toaster />
       <Switch>
         <Route path='/productions/new'>
           <ProductionForm />

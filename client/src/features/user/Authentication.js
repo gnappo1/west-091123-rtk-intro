@@ -6,6 +6,7 @@ import {useDispatch} from 'react-redux'
 import {fetchRegister} from './userSlice'
 import { fetchAllProductions } from '../production/productionSlice';
 import { setToken, setRefreshToken } from '../../utility/main';
+import toast from 'react-hot-toast';
 
 function Authentication() {
     const [signUp, setSignUp] = useState(false)
@@ -41,15 +42,18 @@ function Authentication() {
         onSubmit: async (values) => {
             const action = await dispatch(fetchRegister({url, values}))
             if (typeof action.payload !== "string") {
+                toast.success(`Welcome ${action.payload.user.username}!`)
                 setToken(action.payload.jwt_token)
                 setRefreshToken(action.payload.refresh_token)
                 dispatch(fetchAllProductions())
+            } else {
+                toast.error(action.payload)
             }
         }
     })
     
     const handleClick = () => setSignUp((signUp) => !signUp)
-    
+
     return (
         <> 
             <div id="register-switch">

@@ -5,6 +5,7 @@ import { fetchPatchProduction } from './productionSlice'
 import { Formik } from "formik"
 import * as yup from "yup"
 import NotFound from '../../components/NotFound'
+import { toast } from 'react-hot-toast';
 
 
 function ProductionFormEdit() {
@@ -63,7 +64,10 @@ function ProductionFormEdit() {
           onSubmit={async (values) => {
             const action = await dispatch(fetchPatchProduction({id, values}))
             if (typeof action.payload !== "string") {
+              toast.success(`Production ${action.payload.title} updated!`)
               history.push(`/productions/${id}`)
+            } else {
+              toast.error(action.payload)
             }
           }}
         >

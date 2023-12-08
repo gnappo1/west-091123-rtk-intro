@@ -5,6 +5,7 @@ import { Formik } from 'formik';
 import * as yup from 'yup';
 import { useDispatch } from 'react-redux';
 import { fetchPostProduction } from './productionSlice';
+import toast from 'react-hot-toast';
 
 
 function ProductionForm() {
@@ -46,7 +47,10 @@ function ProductionForm() {
             const action = await dispatch(fetchPostProduction({...values, ongoing: true}))
             
             if (typeof action.payload !== "string") {
+              toast.success(`Production ${action.payload.title} created!`)
               history.push("/")
+            } else {
+              toast.error(action.payload)
             }
           }}
         >

@@ -131,10 +131,12 @@ const productionSlice = createSlice({
         setProduction: create.reducer((state, action) => {
             state.spotlight = action.payload
             state.loading = false
+            state.errors = []
         }),
         setEditMode: create.reducer((state, action) => {
             state.editMode = action.payload
             state.loading = false
+            state.errors = []
         }),
         addError: create.reducer((state, action) => {
             state.errors.push(action.payload)
@@ -174,7 +176,11 @@ const productionSlice = createSlice({
                 },
                 fulfilled: (state, action) => {
                     state.loading = false
-                    state.spotlight = action.payload
+                    if (!action.payload.id) {
+                        state.errors.push(action.payload)
+                    } else {
+                        state.spotlight = action.payload
+                    }
                 },
             }
         ),

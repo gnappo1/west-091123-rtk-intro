@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import {setEditMode, fetchOneProduction, fetchDeleteProduction} from './productionSlice'
 import styled from 'styled-components'
 import NotFound from '../../components/NotFound'
+import { toast } from 'react-hot-toast';
 
 function ProductionDetail() {
   const production = useSelector(state => state.production.spotlight)
@@ -12,13 +13,27 @@ function ProductionDetail() {
   const dispatch = useDispatch()
 
   useEffect(()=>{
-    dispatch(fetchOneProduction(prod_id))
-  },[prod_id])
+    (async () => {
+      if (!production) {
+        const {payload} = await dispatch(fetchOneProduction(prod_id))
+        if (typeof payload !== "string") {
+          toast.success(`Production ${payload.title} loaded!`)
+        } else {
+          toast.error(payload)
+          history.push("/")
+        }
+      }
+    
+    })()
+  },[production, prod_id])
 
   const handleDelete = async () => {
       const {type, meta, payload} = await dispatch(fetchDeleteProduction(prod_id))
       if (meta.requestStatus === "fulfilled" && type === "production/fetchDeleteProduction/fulfilled") {
+        toast.success(`Production ${production.title} deleted!`)
         history.push("/")
+      } else {
+        toast.error(payload)
       }
   }
 
