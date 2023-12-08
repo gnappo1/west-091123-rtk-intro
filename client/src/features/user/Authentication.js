@@ -5,7 +5,7 @@ import * as yup from "yup"
 import {useDispatch} from 'react-redux'
 import {fetchRegister} from './userSlice'
 import { fetchAllProductions } from '../production/productionSlice';
-import { setToken, setRefreshToken } from '../../utility/main';
+import { setToken, setRefreshToken } from '../../utils/main';
 import toast from 'react-hot-toast';
 
 function Authentication() {

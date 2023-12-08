@@ -17,7 +17,7 @@ import ProductionDetail from './features/production/ProductionDetail'
 import Authentication from './features/user/Authentication'
 import NotFound from './components/NotFound'
 import "./App.css"
-import { setToken } from './utility/main'
+import { setToken } from './utils/main'
 import { Toaster } from 'react-hot-toast';
 
 
