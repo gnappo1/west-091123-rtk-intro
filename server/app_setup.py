@@ -8,6 +8,7 @@ from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from datetime import timedelta
 import os
+from flask_cors import CORS
 
 load_dotenv()  # take environment variables from .env.
 
@@ -47,3 +48,5 @@ bcrypt = Bcrypt(app)
 api = Api(app, prefix="/api/v1")
 #! Flask-jwt-extended setup
 jwt = JWTManager(app)
+#! Flask-CORS setup
+cors = CORS(app)#, resources={r"/api/*": {"origins": "*"}})

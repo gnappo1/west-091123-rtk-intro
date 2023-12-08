@@ -19,8 +19,8 @@ import NotFound from './components/NotFound'
 import "./App.css"
 import { setToken } from './utils/main'
 import { Toaster } from 'react-hot-toast';
-
-
+import { useFetchCurrentUserQuery } from './services/userApi'
+import { useFetchProductionsQuery } from './services/productionSlice'
 function App() {
   const user = useSelector(state => state.user.data)
   const userErrors = useSelector(state => state.user.errors)
@@ -31,20 +31,23 @@ function App() {
     dispatch(clearUserErrors(""))
     dispatch(clearProductionErrors(""))
   }, [dispatch, clearUserErrors, clearProductionErrors]);
-
-  useEffect(() => {
-    (async () => {
-      if (!user) {
-        const action = await dispatch(fetchCurrentUser())
-        if (typeof action.payload !== "string") {
-          if (action.payload.flag === "refresh") {
-            setToken(action.payload.jwt_token)
-          }
-          dispatch(fetchAllProductions())
-        }
-      }
-    })()
-  }, [user])
+  const { data: userData, error: userError, isLoading: userIsLoading } = useFetchCurrentUserQuery()
+  const { data: productionData, error: productionError, isLoading: productionIsLoading } = useFetchProductionsQuery()
+  // debugger
+  // useEffect(() => {
+  //   (async () => {
+  //     if (!user) {
+  //       debugger
+  //       const action = await dispatch(fetchCurrentUser())
+  //       if (typeof action.payload !== "string") {
+  //         if (action.payload.flag === "refresh") {
+  //           setToken(action.payload.jwt_token)
+  //         }
+  //         dispatch(fetchAllProductions())
+  //       }
+  //     }
+  //   })()
+  // }, [user])
 
   useEffect(() => {
     if (errors.length) {
@@ -56,7 +59,7 @@ function App() {
     }
   }, [errors, clearErrorsAction]);
 
-  if(!user) return (
+  if(!userData) return (
     <>
       <GlobalStyle />
       <Navigation/>
