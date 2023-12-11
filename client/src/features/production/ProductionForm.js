@@ -4,13 +4,20 @@ import { useHistory } from 'react-router-dom'
 import { Formik } from 'formik';
 import * as yup from 'yup';
 import { useDispatch } from 'react-redux';
-import { fetchPostProduction } from './productionSlice';
+// import { fetchPostProduction } from './productionSlice';
+// import { useEffect } from 'react';
 import toast from 'react-hot-toast';
-
+import { useFetchPostProductionMutation } from '../../services/productionApi';
+import { useFetchTokensMutation } from '../../services/auth_api';
+import { useFetchLogoutMutation } from '../../services/userApi';
+import { logout } from '../user/userSlice';
 
 function ProductionForm() {
   const dispatch = useDispatch()
   const history = useHistory()
+  const [postProduction, {result: productionResult}] = useFetchPostProductionMutation()
+  const [checkTokens, {result: tokenResult}]  = useFetchTokensMutation()
+
   const productionSchema = yup.object().shape({
     title: yup.string()
       .min(2, "Titles must be at least 2 chars long")
@@ -32,8 +39,8 @@ function ProductionForm() {
     director: yup.string()
       .required("Director is required"),
     description: yup.string()
-      .min(30, "Description should be at least 10 chars")
-      .max(500, "Description should be 10000 chars max")
+      .min(30, "Description should be at least 30 chars")
+      .max(500, "Description should be 500 chars max")
       .required("Description is required")
   })
 
@@ -44,13 +51,19 @@ function ProductionForm() {
           initialValues={{ title: '', genre: '', budget: '', image: '', director: '', description: '', ongoing: '' }}
           validationSchema={productionSchema}
           onSubmit={async (values) => {
-            const action = await dispatch(fetchPostProduction({...values, ongoing: true}))
-            
-            if (typeof action.payload !== "string") {
-              toast.success(`Production ${action.payload.title} created!`)
-              history.push("/")
+            const tokenAction = await checkTokens()
+            const validRefreshToken = typeof tokenAction.data === "string"
+            const validAccessToken = tokenAction.data && tokenAction.data.message && tokenAction.data.message === 'Valid Token'
+            if ((validAccessToken || validRefreshToken)){
+              const postAction = await postProduction({...values, ongoing: true})
+              if (postAction.data && postAction.data.id) {
+                history.push("/")
+              }
             } else {
-              toast.error(action.payload)
+              //! Log user out if tokens are both expired
+              localStorage.removeItem("jwt_token")
+              localStorage.removeItem("refresh_token")
+              await dispatch(logout())
             }
           }}
         >

@@ -18,6 +18,6 @@ class Refresh(Resource):
     def post(self):
         try:
             jwt = create_access_token(identity=get_jwt_identity())
-            return make_response({"user": user_schema.dump(current_user), "jwt_token": jwt}, 200)
+            return make_response({"jwt_token": jwt}, 200)
         except Exception as e:
             return {"message": str(e)}, 400

@@ -1,52 +1,53 @@
 import  {useParams, useHistory } from 'react-router-dom'
-import {useEffect} from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {setEditMode, fetchOneProduction, fetchDeleteProduction} from './productionSlice'
+import {setEditMode} from './productionSlice'
+import { useFetchProductionQuery, useFetchDeleteProductionMutation } from '../../services/productionApi'
 import styled from 'styled-components'
 import NotFound from '../../components/NotFound'
 import { toast } from 'react-hot-toast';
+import Spinner from '../../components/Spinner'
+import { logout } from '../user/userSlice'
+import { useFetchTokensMutation } from '../../services/auth_api'
 
 function ProductionDetail() {
-  const production = useSelector(state => state.production.spotlight)
   const {prod_id} = useParams()
   const history = useHistory()
   const dispatch = useDispatch()
+  const {data, error, isLoading } = useFetchProductionQuery(parseInt(prod_id))
+  const [deleteProduction, {result, isLoading: deleteIsLoading, error: deleteError}] = useFetchDeleteProductionMutation()
+  const [checkTokens, {result: tokenResult}]  = useFetchTokensMutation()
 
-  useEffect(()=>{
-    (async () => {
-      if (!production) {
-        const {payload} = await dispatch(fetchOneProduction(prod_id))
-        if (typeof payload !== "string") {
-          toast.success(`Production ${payload.title} loaded!`)
-        } else {
-          toast.error(payload)
-          history.push("/")
-        }
-      }
-    
-    })()
-  },[production, prod_id])
 
   const handleDelete = async () => {
-      const {type, meta, payload} = await dispatch(fetchDeleteProduction(prod_id))
-      if (meta.requestStatus === "fulfilled" && type === "production/fetchDeleteProduction/fulfilled") {
-        toast.success(`Production ${production.title} deleted!`)
+    const tokenAction = await checkTokens()
+    const validRefreshToken = typeof tokenAction.data === "string"
+    const validAccessToken = tokenAction.data && tokenAction.data.message && tokenAction.data.message === 'Valid Token'
+    if ((validAccessToken || validRefreshToken)){
+      const result = await deleteProduction(prod_id)
+      if (prod_id === result.data) {
         history.push("/")
-      } else {
-        toast.error(payload)
       }
+    } else {
+      //! Log user out if tokens are both expired
+      localStorage.removeItem("jwt_token")
+      localStorage.removeItem("refresh_token")
+      dispatch(logout())
+    }
   }
 
   const handleEdit = () => {
     dispatch(setEditMode(true))
-    history.push(`/productions/edit/${production.id}`)
+    history.push(`/productions/edit/${data.id}`)
   }
 
-  if (!production) {
+  if (error) {
     return <NotFound />
   }
+  if (isLoading) {
+    return <Spinner loading={isLoading} />
+  }
 
-  const {id, title, genre, image,description, crew_members} = production 
+  const {id, title, genre, image,description, crew_members} = data 
 
   return (
       <CardDetail id={id}>

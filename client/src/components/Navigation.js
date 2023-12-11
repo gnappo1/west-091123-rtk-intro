@@ -5,18 +5,21 @@ import styled from 'styled-components'
 import { GiHamburgerMenu } from 'react-icons/gi'
 import { logout } from '../features/user/userSlice'
 import toast from 'react-hot-toast'
+import { useFetchCurrentUserQuery, useFetchLogoutMutation } from '../services/userApi'
 
 function Navigation() {
  const [menu, setMenu] = useState(false)
+  const {data, error, isLoading } = useFetchCurrentUserQuery()
  const dispatch = useDispatch()
+//  const [deleteFetch, result] = useFetchLogoutMutation()
   const user = useSelector(state => state.user.data)
- const handleLogout = () => {
+ const handleLogout = async () => {
     //! No need to send a request to the API
     //! There is nothing our API can currently do to invalidate this token
     //! the frontend simply has to remove the tokenS (as in both of them) from localStorage 
     localStorage.removeItem("jwt_token")
     localStorage.removeItem("refresh_token")
-    dispatch(logout())
+    await dispatch(logout())
     toast.success("You have successfully logged out!")
  }
 
@@ -38,7 +41,8 @@ function Navigation() {
                   </>
 
                 ) : (
-                  <li><Link to='/'> Login/Signup</Link></li>
+                  <><li><Link to='/'> Register</Link></li>
+                  <li><Link to='/productions/new'> Form</Link></li></>
                 )}
               </ul>
             }

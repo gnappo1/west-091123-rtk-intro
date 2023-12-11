@@ -49,7 +49,7 @@ class ProductionById(Resource):
         try:
             db.session.delete(prod)
             db.session.commit()
-            return None, 204
+            return {id: prod.id}, 204
         except Exception as e:
             db.session.rollback()
             abort(400, str(e))

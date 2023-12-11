@@ -13,6 +13,8 @@ from routes.auth.login import Login
 from routes.auth.me import Me
 from routes.auth.refresh import Refresh
 from routes.auth.check_token import CheckToken
+from routes.auth.logout import Logout
+
 #! Routes
 api.add_resource(Welcome, "/")
 #! GET/POST Productions routes
@@ -27,6 +29,8 @@ api.add_resource(CrewMemberById, "/crew_members/<int:id>")
 api.add_resource(Signup, "/signup")
 #! POST Login
 api.add_resource(Login, "/login")
+#! DELETE Logout
+api.add_resource(Logout, "/logout")
 #! GET Me
 api.add_resource(Me, "/me")
 #! POST Refresh

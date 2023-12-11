@@ -1,24 +1,26 @@
 import styled from 'styled-components'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchPatchProduction } from './productionSlice'
 import { Formik } from "formik"
 import * as yup from "yup"
 import NotFound from '../../components/NotFound'
 import { toast } from 'react-hot-toast';
+import { useFetchPatchProductionMutation, useFetchProductionQuery } from '../../services/productionApi';
+import { useFetchTokensMutation } from '../../services/auth_api';
+import { logout } from '../user/userSlice';
+import Spinner from '../../components/Spinner'
 
 
 function ProductionFormEdit() {
-  //Student Challenge: GET One 
   const history = useHistory()
   const dispatch = useDispatch()
-  const production = useSelector(state => state.production.spotlight)
-  //! if we connect to the store, we can get the loading state
-  //! but the loading state will change when we incorrectly fire our PATCH request (aka did not pass backend validation)
-  //! since this component subscribes to a changing slice of state, the component does what? Re-renders!
-  //! Goodbye formik state the form resets to initialState, aka the values currently in the store
-  //! so we will need to use local state to handle loading
-  // const loading = useSelector(state => state.production.loading)
+  const { prod_id } = useParams()
+  console.log("🚀 ~ file: ProductionEdit.js:20 ~ ProductionFormEdit ~ prod_id:", prod_id)
+  const [patchProduction, {result: productionResult}] = useFetchPatchProductionMutation()
+  const [checkTokens, {result: tokenResult}]  = useFetchTokensMutation()
+  const {data, error, isLoading } = useFetchProductionQuery(parseInt(prod_id))
+
   // 7.✅ Use yup to create client side validations
   const productionSchema = yup.object().shape({
     title: yup.string()
@@ -51,10 +53,12 @@ function ProductionFormEdit() {
       .required('Description is required')
   })
 
-  if(!production) return <NotFound />
-  // if(loading) return <h2>Loading</h2>
+  if(error) return <NotFound />
+  if (isLoading) {
+    return <Spinner loading={isLoading} />
+  }
   
-  const {id, title, genre, budget, image, director, description, ongoing} = production
+  const {id, title, genre, budget, image, director, description, ongoing} = data
 
   return (
       <div className='App'>
@@ -62,12 +66,20 @@ function ProductionFormEdit() {
           initialValues={{ title, genre, budget, image, director, description, ongoing }}
           validationSchema={productionSchema}
           onSubmit={async (values) => {
-            const action = await dispatch(fetchPatchProduction({id, values}))
-            if (typeof action.payload !== "string") {
-              toast.success(`Production ${action.payload.title} updated!`)
-              history.push(`/productions/${id}`)
+            const tokenAction = await checkTokens()
+            const validRefreshToken = typeof tokenAction.data === "string"
+            const validAccessToken = tokenAction.data && tokenAction.data.message && tokenAction.data.message === 'Valid Token'
+            if ((validAccessToken || validRefreshToken)){
+              const patchAction = await patchProduction({values: {...values, ongoing: true}, prodId: prod_id})
+              
+              if (patchAction.data && patchAction.data.id) {
+                history.push(`/productions/${patchAction.data.id}`)
+              }
             } else {
-              toast.error(action.payload)
+              //! Log user out if tokens are both expired
+              localStorage.removeItem("jwt_token")
+              localStorage.removeItem("refresh_token")
+              await dispatch(logout())
             }
           }}
         >

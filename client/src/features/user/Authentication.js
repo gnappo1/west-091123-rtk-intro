@@ -1,17 +1,19 @@
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import styled from "styled-components";
 import { useFormik } from "formik"
 import * as yup from "yup"
 import {useDispatch} from 'react-redux'
-import {fetchRegister} from './userSlice'
-import { fetchAllProductions } from '../production/productionSlice';
-import { setToken, setRefreshToken } from '../../utils/main';
-import toast from 'react-hot-toast';
+import {setUser} from './userSlice'
+import { useFetchRegisterMutation, useFetchCurrentUserQuery } from '../../services/userApi';
+// import { useBounceLoggedInUsers } from '../../hooks/hooks';
+import { useHistory } from 'react-router-dom';
 
 function Authentication() {
     const [signUp, setSignUp] = useState(false)
+    const [register, result] = useFetchRegisterMutation()
+    const {result: currentUser, error: currentUserError} = useFetchCurrentUserQuery()
     const dispatch = useDispatch()
-
+    const history = useHistory()
     const signupSchema = yup.object().shape({
         username: yup.string()
         .required("Please enter a user name"),
@@ -40,15 +42,10 @@ function Authentication() {
         },
         validationSchema: signUp ? signupSchema : loginSchema,
         onSubmit: async (values) => {
-            const action = await dispatch(fetchRegister({url, values}))
-            if (typeof action.payload !== "string") {
-                toast.success(`Welcome ${action.payload.user.username}!`)
-                setToken(action.payload.jwt_token)
-                setRefreshToken(action.payload.refresh_token)
-                dispatch(fetchAllProductions())
-            } else {
-                toast.error(action.payload)
-            }
+            const action = await register({values, url})
+            //! Toast notification fires twice because of the state update in the userSlice
+            dispatch(setUser(action.data))
+            history.push("/")
         }
     })
     

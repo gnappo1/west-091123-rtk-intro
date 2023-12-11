@@ -1,15 +1,24 @@
 import styled from 'styled-components'
 import ProductionCard from './ProductionCard'
-import {useSelector} from 'react-redux'
+import { useFetchProductionsQuery } from '../../services/productionApi'
+import Spinner from '../../components/Spinner'
 
 function ProductionContainer() {
-    const productions = useSelector(state => state.production.data)
+    const {data, error, isLoading} = useFetchProductionsQuery()
+
+    if (isLoading) {
+        return <Spinner loading={isLoading} />
+    }
+
+    if (error) {
+        return <h1>{error}</h1>
+    }
 
     return (
         <div>
             <Title><span>F</span>latIron Theater <span>C</span>ompany</Title>
             <CardContainer>
-                {productions && productions.map(production => <ProductionCard  key={production.id} production={production}  />)}
+                {data && data.map(production => <ProductionCard  key={production.id} production={production}  />)}
             </CardContainer>
         </div>
     )
